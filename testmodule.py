@@ -32,18 +32,22 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     to the out_folder using the provided series_uid.
     """
     dcm_file_in = Path(in_folder) / file
-    out_filename = series_uid + "#" + file.split("#", 1)[1]
-    dcm_file_out = Path(out_folder) / out_filename
-
+    
     # Load the reference image to get study information
     ref_ds = pydicom.dcmread(dcm_file_in)
+    
+    # Generate new UIDs first
+    new_sop_instance_uid = generate_uid()
+    # Create output filename using the new SOP Instance UID
+    out_filename = series_uid + "#" + new_sop_instance_uid + ".dcm"
+    dcm_file_out = Path(out_folder) / out_filename
     
     # Create new SR dataset
     ds = pydicom.Dataset()
     
     # Add mandatory SR metadata
     ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.88.11"  # Basic Text SR
-    ds.SOPInstanceUID = generate_uid()
+    ds.SOPInstanceUID = new_sop_instance_uid  # Use the pre-generated UID
     ds.SeriesInstanceUID = series_uid
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
