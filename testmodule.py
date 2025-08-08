@@ -43,11 +43,11 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     
     # Add mandatory SR metadata
     ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.88.11"  # Basic Text SR
-    ds.StudyInstanceUID = ref_ds.StudyInstanceUID  # Use same study UID
-    ds.SeriesInstanceUID = series_uid  # Use same series UID as processed images
-    ds.SOPInstanceUID = generate_uid()  # Unique instance UID for this SR
+    ds.SOPInstanceUID = generate_uid()
+    ds.SeriesInstanceUID = series_uid
+    ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
-    ds.SeriesDescription = "SR(" + ref_ds.SeriesDescription + ")"  # Match naming convention
+    ds.SeriesDescription = "SR Report"
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
     
@@ -236,9 +236,10 @@ def main(args=sys.argv[1:]):
         for image_filename in series[item]:
             process_image(image_filename, in_folder, out_folder, series_uid, settings)
         
-        # Create an SR document for the first image in the series, using the same series UID
+        # Create an SR document for the first image in the series
         if series[item]:
-            create_sr(series[item][0], in_folder, out_folder, series_uid, settings)
+            sr_series_uid = generate_uid()
+            create_sr(series[item][0], in_folder, out_folder, sr_series_uid, settings)
 
 
 if __name__ == "__main__":
