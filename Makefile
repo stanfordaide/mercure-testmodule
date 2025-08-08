@@ -1,2 +1,2 @@
 build:
-	docker build . -t mercureimaging/mercure-testmodule:latest
+	docker build . -t stanfordaide/mercure-testmodule:latest

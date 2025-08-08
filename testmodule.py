@@ -251,7 +251,7 @@ def main(args=sys.argv[1:]):
         sys.exit(1)
 
     # Create default values for all module settings
-    settings = {"sigma": 7, "series_offset": 1000}
+    settings = {"sigma": 7, "series_offset": 3000}
 
     # Overwrite default values with settings from the task file (if present)
     if task.get("process", ""):
