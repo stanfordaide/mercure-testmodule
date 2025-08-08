@@ -52,6 +52,7 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
     ds.SeriesDescription = "SR Report"
+    ds.StudyDescription = ref_ds.StudyDescription + " OUTPUT" if hasattr(ref_ds, 'StudyDescription') else "OUTPUT"
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
     
@@ -209,6 +210,7 @@ def process_image(file, in_folder, out_folder, series_uid, settings):
     ds.SeriesNumber = ds.SeriesNumber + settings["series_offset"]
     # Update the series description to indicate which the modified DICOM series is
     ds.SeriesDescription = "FILTER(" + ds.SeriesDescription + ")"
+    ds.StudyDescription = ds.StudyDescription + " OUTPUT" if hasattr(ds, 'StudyDescription') else "OUTPUT"
     # Access the pixel data of the input image, filter it, and store it
     pixels = ds.pixel_array
     blurred_pixels = gaussian_filter(pixels, sigma=settings["sigma"])
