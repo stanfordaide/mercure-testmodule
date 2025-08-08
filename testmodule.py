@@ -47,7 +47,7 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.SeriesInstanceUID = series_uid
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
-    ds.SeriesDescription = "Simple SR Report"
+    ds.SeriesDescription = "SR(" + ref_ds.SeriesDescription + ")"
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
     
