@@ -25,6 +25,61 @@ from pydicom.uid import generate_uid
 from scipy.ndimage import gaussian_filter
 
 
+def create_sr(file, in_folder, out_folder, series_uid, settings):
+    """
+    Creates a lightweight DICOM SR for the given DICOM image. This function will read the
+    reference file from the in_folder and create a simple SR document that will be saved
+    to the out_folder using the provided series_uid.
+    """
+    dcm_file_in = Path(in_folder) / file
+    out_filename = series_uid + "#" + file.split("#", 1)[1]
+    dcm_file_out = Path(out_folder) / out_filename
+
+    # Load the reference image to get study information
+    ref_ds = pydicom.dcmread(dcm_file_in)
+    
+    # Create new SR dataset
+    ds = pydicom.Dataset()
+    
+    # Add mandatory SR metadata
+    ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.88.11"  # Basic Text SR
+    ds.SOPInstanceUID = generate_uid()
+    ds.SeriesInstanceUID = series_uid
+    ds.StudyInstanceUID = ref_ds.StudyInstanceUID
+    ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
+    ds.SeriesDescription = "Simple SR Report"
+    ds.Modality = "SR"
+    ds.Manufacturer = "Mercure Test Module"
+    
+    # Copy patient and study information from reference image
+    ds.PatientName = ref_ds.PatientName
+    ds.PatientID = ref_ds.PatientID
+    ds.StudyDate = ref_ds.StudyDate
+    ds.StudyTime = ref_ds.StudyTime
+    ds.AccessionNumber = ref_ds.AccessionNumber
+    
+    # Add simple content
+    ds.ContentDate = ref_ds.StudyDate
+    ds.ContentTime = ref_ds.StudyTime
+    ds.ValueType = "CONTAINER"
+    ds.ContinuityOfContent = "SEPARATE"
+    
+    # Create file meta information
+    file_meta = pydicom.Dataset()
+    file_meta.MediaStorageSOPClassUID = ds.SOPClassUID
+    file_meta.MediaStorageSOPInstanceUID = ds.SOPInstanceUID
+    file_meta.ImplementationClassUID = generate_uid()
+    file_meta.TransferSyntaxUID = pydicom.uid.ExplicitVRLittleEndian
+    
+    # Create the final dataset
+    ds.file_meta = file_meta
+    ds.is_implicit_VR = False
+    ds.is_little_endian = True
+    
+    # Save the SR
+    ds.save_as(dcm_file_out, write_like_original=False)
+
+
 def process_image(file, in_folder, out_folder, series_uid, settings):
     """
     Processes the DICOM image specified by 'file'. This function will read the
@@ -118,6 +173,11 @@ def main(args=sys.argv[1:]):
         # Now loop over all slices of the current series and call the processing function
         for image_filename in series[item]:
             process_image(image_filename, in_folder, out_folder, series_uid, settings)
+        
+        # Create an SR document for the first image in the series
+        if series[item]:
+            sr_series_uid = generate_uid()
+            create_sr(series[item][0], in_folder, out_folder, sr_series_uid, settings)
 
 
 if __name__ == "__main__":
