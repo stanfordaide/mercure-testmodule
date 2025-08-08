@@ -107,18 +107,59 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     template.TemplateIdentifier = '2000'
     
     # Content Sequence (Document Content)
-    ds.ContentSequence = [pydicom.Dataset()]
-    content = ds.ContentSequence[0]
-    content.RelationshipType = 'CONTAINS'
-    content.ValueType = 'TEXT'
-    content.TextValue = 'Image processed with Gaussian filter (sigma=' + str(settings["sigma"]) + ')'
+    ds.ContentSequence = []
     
-    # Add concept name to the content
-    content.ConceptNameCodeSequence = [pydicom.Dataset()]
-    content_concept = content.ConceptNameCodeSequence[0]
-    content_concept.CodeValue = '121106'
-    content_concept.CodingSchemeDesignator = 'DCM'
-    content_concept.CodeMeaning = 'Processing Description'
+    # Add processing description
+    proc_desc = pydicom.Dataset()
+    proc_desc.RelationshipType = 'CONTAINS'
+    proc_desc.ValueType = 'TEXT'
+    proc_desc.TextValue = 'Image processed with Gaussian filter (sigma=' + str(settings["sigma"]) + ')'
+    proc_desc.ConceptNameCodeSequence = [pydicom.Dataset()]
+    proc_desc.ConceptNameCodeSequence[0].CodeValue = '121106'
+    proc_desc.ConceptNameCodeSequence[0].CodingSchemeDesignator = 'DCM'
+    proc_desc.ConceptNameCodeSequence[0].CodeMeaning = 'Processing Description'
+    ds.ContentSequence.append(proc_desc)
+    
+    # Add measurements container
+    meas_container = pydicom.Dataset()
+    meas_container.RelationshipType = 'CONTAINS'
+    meas_container.ValueType = 'CONTAINER'
+    meas_container.ContinuityOfContent = 'SEPARATE'
+    meas_container.ConceptNameCodeSequence = [pydicom.Dataset()]
+    meas_container.ConceptNameCodeSequence[0].CodeValue = '125007'
+    meas_container.ConceptNameCodeSequence[0].CodingSchemeDesignator = 'DCM'
+    meas_container.ConceptNameCodeSequence[0].CodeMeaning = 'Measurements'
+    meas_container.ContentSequence = []
+    
+    # Function to create measurement
+    def create_measurement(name, value, unit='mm', side=''):
+        meas = pydicom.Dataset()
+        meas.RelationshipType = 'CONTAINS'
+        meas.ValueType = 'NUM'
+        
+        # Measurement value
+        meas.MeasuredValueSequence = [pydicom.Dataset()]
+        meas.MeasuredValueSequence[0].NumericValue = str(value)
+        meas.MeasuredValueSequence[0].MeasurementUnitsCodeSequence = [pydicom.Dataset()]
+        meas.MeasuredValueSequence[0].MeasurementUnitsCodeSequence[0].CodeValue = 'mm'
+        meas.MeasuredValueSequence[0].MeasurementUnitsCodeSequence[0].CodingSchemeDesignator = 'UCUM'
+        meas.MeasuredValueSequence[0].MeasurementUnitsCodeSequence[0].CodeMeaning = 'millimeter'
+        
+        # Concept name (measurement type)
+        meas.ConceptNameCodeSequence = [pydicom.Dataset()]
+        meas.ConceptNameCodeSequence[0].CodeValue = '410668003'  # Length
+        meas.ConceptNameCodeSequence[0].CodingSchemeDesignator = 'SCT'  # SNOMED CT
+        meas.ConceptNameCodeSequence[0].CodeMeaning = f'{side} {name} Length'
+        
+        return meas
+    
+    # Add each measurement
+    meas_container.ContentSequence.append(create_measurement('Tibia', 38, side='Right'))
+    meas_container.ContentSequence.append(create_measurement('Tibia', 39, side='Left'))
+    meas_container.ContentSequence.append(create_measurement('Femur', 38, side='Right'))
+    
+    # Add measurements container to main content sequence
+    ds.ContentSequence.append(meas_container)
     
     # Add reference to original image
     ds.CurrentRequestedProcedureEvidenceSequence = [pydicom.Dataset()]
