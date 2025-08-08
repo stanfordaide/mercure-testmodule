@@ -48,13 +48,22 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
     ds.SeriesDescription = "SR Report"
-    ds.SpecificCharacterSet = 'ISO_IR 100'
-    ds.InstanceNumber = '1'
-    ds.ContentLabel = 'REPORT'
-    ds.CompletionFlag = 'COMPLETE'
-    ds.VerificationFlag = 'VERIFIED'
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
+    
+    # Type 1 attributes
+    ds.SpecificCharacterSet = 'ISO_IR 100'
+    ds.InstanceNumber = '1'
+    ds.ContentDate = ref_ds.StudyDate
+    ds.ContentTime = ref_ds.StudyTime
+    ds.CompletionFlag = 'COMPLETE'
+    ds.VerificationFlag = 'UNVERIFIED'
+    
+    # Type 2 attributes
+    ds.InstanceCreationDate = ref_ds.StudyDate
+    ds.InstanceCreationTime = ref_ds.StudyTime
+    ds.TimezoneOffsetFromUTC = ''
+    ds.PreliminaryFlag = ''
     
     # Copy patient and study information from reference image
     ds.PatientName = ref_ds.PatientName
@@ -67,22 +76,45 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.ContentDate = ref_ds.StudyDate
     ds.ContentTime = ref_ds.StudyTime
     
-    # Create Content Sequence
+    # Document Content Module
+    ds.ValueType = 'CONTAINER'
+    ds.ContinuityOfContent = 'SEPARATE'
+    
+    # Document Relationship Context
     ds.ConceptNameCodeSequence = [pydicom.Dataset()]
-    ds.ConceptNameCodeSequence[0].CodeValue = '11528-7'
-    ds.ConceptNameCodeSequence[0].CodingSchemeDesignator = 'LN'
-    ds.ConceptNameCodeSequence[0].CodeMeaning = 'Radiology Report'
+    concept_name = ds.ConceptNameCodeSequence[0]
+    concept_name.CodeValue = '11528-7'
+    concept_name.CodingSchemeDesignator = 'LN'
+    concept_name.CodeMeaning = 'Radiology Report'
     
-    # Create Content Template Sequence
+    # Observation Context
+    ds.ObservationDateTime = ref_ds.StudyDate + ref_ds.StudyTime
+    ds.ObserverType = 'DEVICE'
+    ds.ObserverIdentificationCodeSequence = [pydicom.Dataset()]
+    observer = ds.ObserverIdentificationCodeSequence[0]
+    observer.CodeValue = 'MERCURE_TEST'
+    observer.CodingSchemeDesignator = 'L'
+    observer.CodeMeaning = 'Mercure Test Module'
+    
+    # Content Template
     ds.ContentTemplateSequence = [pydicom.Dataset()]
-    ds.ContentTemplateSequence[0].TemplateIdentifier = '2000'
-    ds.ContentTemplateSequence[0].MappingResource = 'DCMR'
+    template = ds.ContentTemplateSequence[0]
+    template.MappingResource = 'DCMR'
+    template.TemplateIdentifier = '2000'
     
-    # Create Content Sequence
+    # Content Sequence (Document Content)
     ds.ContentSequence = [pydicom.Dataset()]
-    ds.ContentSequence[0].RelationshipType = 'CONTAINS'
-    ds.ContentSequence[0].ValueType = 'TEXT'
-    ds.ContentSequence[0].TextValue = 'Processed with Mercure Test Module'
+    content = ds.ContentSequence[0]
+    content.RelationshipType = 'CONTAINS'
+    content.ValueType = 'TEXT'
+    content.TextValue = 'Image processed with Gaussian filter (sigma=' + str(settings["sigma"]) + ')'
+    
+    # Add concept name to the content
+    content.ConceptNameCodeSequence = [pydicom.Dataset()]
+    content_concept = content.ConceptNameCodeSequence[0]
+    content_concept.CodeValue = '121106'
+    content_concept.CodingSchemeDesignator = 'DCM'
+    content_concept.CodeMeaning = 'Processing Description'
     
     # Add reference to original image
     ds.CurrentRequestedProcedureEvidenceSequence = [pydicom.Dataset()]
