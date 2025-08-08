@@ -32,12 +32,7 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     to the out_folder using the provided series_uid.
     """
     dcm_file_in = Path(in_folder) / file
-    
-    # Create new UIDs first
-    sop_instance_uid = generate_uid()
-    
-    # Create output filename using the new SOP Instance UID
-    out_filename = series_uid + "#" + sop_instance_uid + ".dcm"
+    out_filename = series_uid + "#" + file.split("#", 1)[1]
     dcm_file_out = Path(out_folder) / out_filename
 
     # Load the reference image to get study information
@@ -48,11 +43,11 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     
     # Add mandatory SR metadata
     ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.88.11"  # Basic Text SR
-    ds.SOPInstanceUID = sop_instance_uid  # Use the same UID we used in filename
-    ds.SeriesInstanceUID = series_uid
-    ds.StudyInstanceUID = ref_ds.StudyInstanceUID
+    ds.StudyInstanceUID = ref_ds.StudyInstanceUID  # Use same study UID
+    ds.SeriesInstanceUID = series_uid  # Use same series UID as processed images
+    ds.SOPInstanceUID = generate_uid()  # Unique instance UID for this SR
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
-    ds.SeriesDescription = "SR Report"
+    ds.SeriesDescription = "SR(" + ref_ds.SeriesDescription + ")"  # Match naming convention
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
     
@@ -241,10 +236,9 @@ def main(args=sys.argv[1:]):
         for image_filename in series[item]:
             process_image(image_filename, in_folder, out_folder, series_uid, settings)
         
-        # Create an SR document for the first image in the series
+        # Create an SR document for the first image in the series, using the same series UID
         if series[item]:
-            sr_series_uid = generate_uid()
-            create_sr(series[item][0], in_folder, out_folder, sr_series_uid, settings)
+            create_sr(series[item][0], in_folder, out_folder, series_uid, settings)
 
 
 if __name__ == "__main__":
