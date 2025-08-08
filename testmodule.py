@@ -47,7 +47,12 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.SeriesInstanceUID = series_uid
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
-    ds.SeriesDescription = "SR(" + ref_ds.SeriesDescription + ")"
+    ds.SeriesDescription = "SR Report"
+    ds.SpecificCharacterSet = 'ISO_IR 100'
+    ds.InstanceNumber = '1'
+    ds.ContentLabel = 'REPORT'
+    ds.CompletionFlag = 'COMPLETE'
+    ds.VerificationFlag = 'VERIFIED'
     ds.Modality = "SR"
     ds.Manufacturer = "Mercure Test Module"
     
@@ -58,11 +63,36 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     ds.StudyTime = ref_ds.StudyTime
     ds.AccessionNumber = ref_ds.AccessionNumber
     
-    # Add simple content
+    # Add mandatory content
     ds.ContentDate = ref_ds.StudyDate
     ds.ContentTime = ref_ds.StudyTime
-    ds.ValueType = "CONTAINER"
-    ds.ContinuityOfContent = "SEPARATE"
+    
+    # Create Content Sequence
+    ds.ConceptNameCodeSequence = [pydicom.Dataset()]
+    ds.ConceptNameCodeSequence[0].CodeValue = '11528-7'
+    ds.ConceptNameCodeSequence[0].CodingSchemeDesignator = 'LN'
+    ds.ConceptNameCodeSequence[0].CodeMeaning = 'Radiology Report'
+    
+    # Create Content Template Sequence
+    ds.ContentTemplateSequence = [pydicom.Dataset()]
+    ds.ContentTemplateSequence[0].TemplateIdentifier = '2000'
+    ds.ContentTemplateSequence[0].MappingResource = 'DCMR'
+    
+    # Create Content Sequence
+    ds.ContentSequence = [pydicom.Dataset()]
+    ds.ContentSequence[0].RelationshipType = 'CONTAINS'
+    ds.ContentSequence[0].ValueType = 'TEXT'
+    ds.ContentSequence[0].TextValue = 'Processed with Mercure Test Module'
+    
+    # Add reference to original image
+    ds.CurrentRequestedProcedureEvidenceSequence = [pydicom.Dataset()]
+    evidence = ds.CurrentRequestedProcedureEvidenceSequence[0]
+    evidence.StudyInstanceUID = ref_ds.StudyInstanceUID
+    evidence.ReferencedSeriesSequence = [pydicom.Dataset()]
+    evidence.ReferencedSeriesSequence[0].SeriesInstanceUID = ref_ds.SeriesInstanceUID
+    evidence.ReferencedSeriesSequence[0].ReferencedSOPSequence = [pydicom.Dataset()]
+    evidence.ReferencedSeriesSequence[0].ReferencedSOPSequence[0].ReferencedSOPClassUID = ref_ds.SOPClassUID
+    evidence.ReferencedSeriesSequence[0].ReferencedSOPInstanceUID = ref_ds.SOPInstanceUID
     
     # Create file meta information
     file_meta = pydicom.Dataset()
@@ -118,7 +148,7 @@ def main(args=sys.argv[1:]):
     and output-folder are provided by mercure via environment variables
     """
     # Print some output, so that it can be seen in the logfile that the module was executed
-    print(f"Hello, I am the mercure test module")
+    print(f"Hello, I am the mercure test module - Arogya")
 
     # Check if the input and output folders are provided as arguments
     if len(sys.argv) < 3:
