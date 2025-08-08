@@ -32,7 +32,12 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     to the out_folder using the provided series_uid.
     """
     dcm_file_in = Path(in_folder) / file
-    out_filename = series_uid + "#" + file.split("#", 1)[1]
+    
+    # Create new UIDs first
+    sop_instance_uid = generate_uid()
+    
+    # Create output filename using the new SOP Instance UID
+    out_filename = series_uid + "#" + sop_instance_uid + ".dcm"
     dcm_file_out = Path(out_folder) / out_filename
 
     # Load the reference image to get study information
@@ -43,7 +48,7 @@ def create_sr(file, in_folder, out_folder, series_uid, settings):
     
     # Add mandatory SR metadata
     ds.SOPClassUID = "1.2.840.10008.5.1.4.1.1.88.11"  # Basic Text SR
-    ds.SOPInstanceUID = generate_uid()
+    ds.SOPInstanceUID = sop_instance_uid  # Use the same UID we used in filename
     ds.SeriesInstanceUID = series_uid
     ds.StudyInstanceUID = ref_ds.StudyInstanceUID
     ds.SeriesNumber = ref_ds.SeriesNumber + settings["series_offset"]
